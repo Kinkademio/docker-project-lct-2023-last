@@ -1,0 +1,61 @@
+version: '3.4'
+services:
+  auth:
+    image: auth
+    build:
+      context: ./auth
+    volumes:
+      - ./auth:/usr/src/auth
+    ports:
+      - "4000:4000"
+  proxy:
+    image: proxy
+    build:
+      context: ./proxy
+    volumes:
+      - ./proxy:/usr/src/proxy
+    ports:
+      - "6000:6000"
+  nginx:
+    image: nginx
+    build:
+      context: ./nginx
+    volumes:
+      - ./nginx:/etc/nginx/conf.d/
+      - ./nginx/certs:/etc/ssl
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend-lct-2023
+  mongodb:
+    image: mongo
+    container_name: "mongodb"
+    networks:
+      - databases
+    volumes:
+      - ./_databases/mongodb/mongo-data:/data/db
+    ports:
+      -  27017:27017
+    command: mongod
+  backend-lct-2023:
+    container_name: "backend"
+    build:
+      context: ./backend-lct-2023
+    volumes:
+      - ./backend-lct-2023:/usr/src/backend-lct-2023
+      - /usr/src/backend-lct-2023/node_modules
+    depends_on:
+      - mongodb
+    ports:
+      - 3000:3000
+    environment:
+     WAIT_HOST: mongodb:27017
+    networks:
+      - backend-lct-2023
+      - databases
+networks:
+  backend-lct-2023:
+  databases:
